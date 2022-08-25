@@ -15,6 +15,16 @@ public enum SpeechGender: String, Codable {
     case neuter
 }
 
+public enum SpeechVolume : String, Codable {
+    case none
+    case silent
+    case x_soft = "x-soft"
+    case soft
+    case medium
+    case loud
+    case x_loud = "x-loud"
+}
+
 open class SpeechOptions: Codable {
     public init(text: String) {
         self.text = text
@@ -24,6 +34,11 @@ open class SpeechOptions: Codable {
     public init(ssml: String) {
         self.text = ssml
         textType = .ssml
+    }
+    
+    public convenience init(text: String, volume : SpeechVolume) {
+        self.init(ssml: text)
+        self.speechVolume = volume
     }
     
     /**
@@ -59,13 +74,18 @@ open class SpeechOptions: Codable {
      */
     open var speechGender: SpeechGender = .neuter
     
+    
+    var speechVolume : SpeechVolume = .none
+    
     /**
      The path of the request URL, not including the hostname or any parameters.
      */
     internal var path: String {
         var characterSet = CharacterSet.urlPathAllowed
         characterSet.remove(charactersIn: "/")
-        return "voice/v1/speak/\(text.addingPercentEncoding(withAllowedCharacters: characterSet)!)"
+        if speechVolume != .none { return "voice/v1/speak/\(ssmlFromText.addingPercentEncoding(withAllowedCharacters: characterSet)!)" }
+        else { return "voice/v1/speak/\(text.addingPercentEncoding(withAllowedCharacters: characterSet)!)" }
+        
     }
     
     /**
@@ -83,5 +103,14 @@ open class SpeechOptions: Codable {
         }
         
         return params
+    }
+    
+    
+    var ssmlFromText : String {
+        if speechVolume != .none {
+            return "<speak><prosody volume=\"\(speechVolume.rawValue)\">\(self.text)</prosody></speak>"
+        } else {
+            return "<speak>\(self.text)</speak>"
+        }
     }
 }
